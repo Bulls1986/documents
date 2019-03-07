@@ -1,10 +1,6 @@
 SaaS平台整合Windows和Linux主机日志机器对应Docker容器日志的方案
 ==========================================
 
-  
-
-/*<!\[CDATA\[*/ div.rbtoc1551925315885 {padding: 0px;} div.rbtoc1551925315885 ul {list-style: disc;margin-left: 0px;} div.rbtoc1551925315885 li {margin-left: 0px;padding-left: 0px;} /*\]\]>*/
-
 *   [SaaS平台整合Windows和Linux主机日志机器对应Docker容器日志的方案](#SaaS整合Windows和Linux容器日志方案-SaaS平台整合Windows和Linux主机日志机器对应Docker容器日志的方案)
     *   [一、总体说明](#SaaS整合Windows和Linux容器日志方案-一、总体说明)
     *   [二、总体架构](#SaaS整合Windows和Linux容器日志方案-二、总体架构)
@@ -72,139 +68,76 @@ _四、Graylog配置_
 5.  _在linux配置项中，配置input为tcp-syslog-listener，监听端口514；配置output为gelf-tcp-output，地址为graylog服务器的地址，端口为12201；并添加额外的字段：x_platform=linux，x\_log\_type=system，x\_log\_format=plaintext；Snippet配置为系统默认即可；并设置tag为“linux”；linux“_
 6.  __在linux-docker-app配置项中直接配置Nxlog的_Snippet，内容为：___
     
-    **snippet**
-    
-    [?](#)
-    
-    `<``Processor` `process_buffer_plaintext>`
-    
-    `Module pm_buffer`
-    
-    `MaxSize 16384`
-    
-    `Type Mem`
-    
-    `</``Processor``>`
-    
-    `<``Processor` `process_buffer_json>`
-    
-    `Module pm_buffer`
-    
-    `MaxSize 16384`
-    
-    `Type Disk`
-    
-    `</``Processor``>`
-    
-    `<``Input` `input_plaintext>`
-    
-    `Module im_tcp`
-    
-    `Host 127.0.0.1`
-    
-    `Port 1514`
-    
-    `Exec parse_syslog_bsd();`
-    
-    `</``Input``>`
-    
-    `<``Input` `input_json>`
-    
-    `Module im_tcp`
-    
-    `Host 127.0.0.1`
-    
-    `Port 2514`
-    
-    `Exec parse_syslog_bsd();`
-    
-    `</``Input``>`
-    
-    `<``Output` `output_plaintext>`
-    
-    `Module om_tcp`
-    
-    `Host 192.168.2.67`
-    
-    `Port 12201`
-    
-    `OutputType  GELF_TCP`
-    
-    `Exec $short_message = $raw_event; # Avoids truncation of the short_message field.`
-    
-    `Exec $gl2_source_collector = 'b97bae40-4ac5-40b0-8048-64050831ed8a';`
-    
-    `Exec $collector_node_id = 'repository-01';`
-    
-    `Exec $Hostname = hostname_fqdn();`
-    
-    `Exec $x_log_format = "plaintext";`
-    
-    `Exec $x_log_type = "application";`
-    
-    `Exec $x_platform = "linux";`
-    
-    `</``Output``>`
-    
-    `<``Output` `output_json>`
-    
-    `Module om_tcp`
-    
-    `Host 192.168.2.67`
-    
-    `Port 22201`
-    
-    `OutputType  GELF_TCP`
-    
-    `Exec $short_message = $raw_event; # Avoids truncation of the short_message field.`
-    
-    `Exec $gl2_source_collector = 'b97bae40-4ac5-40b0-8048-64050831ed8a';`
-    
-    `Exec $collector_node_id = 'repository-01';`
-    
-    `Exec $Hostname = hostname_fqdn();`
-    
-    `Exec $x_log_format = "json";`
-    
-    `Exec $x_log_type = "application";`
-    
-    `Exec $x_platform = "linux";`
-    
-    `</``Output``>`
-    
-    `<``Route` `route_plaintext_log>`
-    
-    `Path input_plaintext => process_buffer_plaintext => output_plaintext`
-    
-    `</``Route``>`
-    
-    `<``Route` `route_json_log>`
-    
-    `Path input_json => process_buffer_json => output_json`
-    
-    `</``Route``>`
+```
+<Processor process_buffer_plaintext>
+  Module pm_buffer
+  MaxSize 16384
+  Type Mem
+</Processor>
+<Processor process_buffer_json>
+  Module pm_buffer
+  MaxSize 16384
+  Type Disk
+</Processor>
+<Input input_plaintext>
+    Module im_tcp
+    Host 127.0.0.1
+    Port 1514
+    Exec parse_syslog_bsd();
+</Input>
+<Input input_json>
+        Module im_tcp
+        Host 127.0.0.1
+        Port 2514
+        Exec parse_syslog_bsd();
+</Input>
+<Output output_plaintext>
+    Module om_tcp
+    Host 192.168.2.67
+    Port 12201
+    OutputType  GELF_TCP
+    Exec $short_message = $raw_event; # Avoids truncation of the short_message field.
+    Exec $gl2_source_collector = 'b97bae40-4ac5-40b0-8048-64050831ed8a';
+    Exec $collector_node_id = 'repository-01';
+    Exec $Hostname = hostname_fqdn();
+        Exec $x_log_format = "plaintext";
+    Exec $x_log_type = "application";
+        Exec $x_platform = "linux";
+</Output>
+<Output output_json>
+        Module om_tcp
+        Host 192.168.2.67
+        Port 22201
+        OutputType  GELF_TCP
+        Exec $short_message = $raw_event; # Avoids truncation of the short_message field.
+        Exec $gl2_source_collector = 'b97bae40-4ac5-40b0-8048-64050831ed8a';
+        Exec $collector_node_id = 'repository-01';
+        Exec $Hostname = hostname_fqdn();
+        Exec $x_log_format = "json";
+        Exec $x_log_type = "application";
+        Exec $x_platform = "linux";
+</Output>
+<Route route_plaintext_log>
+  Path input_plaintext => process_buffer_plaintext => output_plaintext
+</Route>
+<Route route_json_log>
+  Path input_json => process_buffer_json => output_json
+</Route>
+```
     
     __，并设置tag为“linux-docker-app”；__
     
 7.  _在windows配置项中_配置windows-event-log,内容为：__
     
-    **Query**
-    
-    [?](#)
-    
-    `<``QueryList``>\`
-    
-    `<``Query` `Id``=``"0"``>\`
-    
-    `<``Select` `Path``=``"Application"``>*</``Select``>\`
-    
-    `<``Select` `Path``=``"System"``>*</``Select``>\`
-    
-    `<``Select` `Path``=``"Security"``>*</``Select``>\`
-    
-    `</``Query``>\`
-    
-    `</``QueryList``>`
+```
+<QueryList>\
+    <Query Id="0">\
+        <Select Path="Application">*</Select>\
+        <Select Path="System">*</Select>\
+        <Select Path="Security">*</Select>\
+    </Query>\
+</QueryList>
+```
     
     __；配置output为gelf-tcp-output，地址为graylog服务器的地址，端口为12201；并添加额外的字段：x_platform=windows，x\_log\_type=system，x\_log\_format=plaintext；Snippet配置为系统默认即可；并设置tag为“windows”；__
     
