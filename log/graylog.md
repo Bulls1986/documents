@@ -150,9 +150,9 @@ _要采集linux系统日志，需要在系统的rsyslog配置中将所有系统�
 
 **rsyslog配置**
 
-[?](#)
-
-`*.* @``@127``.0.``0.1``:``514`
+```
+*.* @@127.0.0.1:514
+```
 
 _六、Windows配置_
 -------------
@@ -166,13 +166,11 @@ __不管是linux容器还是windows容器，_Docker容器启动时根据容器�
 
 **启动参数**
 
-[?](#)
-
-`-``-log``-driver``=syslog`
-
-`-``-log``-opt` `syslog``-address``=tcp://127.0.0.1:2514`
-
-`-``-log``-opt` `tag=nestvision/paas``-spring``-boot``-demo`
+```
+--log-driver=syslog
+--log-opt syslog-address=tcp://127.0.0.1:2514
+--log-opt tag=nestvision/paas-spring-boot-demo
+```
 
 _其中：_
 
@@ -190,7 +188,7 @@ _使用kafka的方案如下，前提需要使用nxlog的商用版（商用版才
 1.  _使用kafka集群先行接受所有的日志，再使用graylog进行后续处理，避免在海量日志写入时由于graylog日志处理不过来导致的阻塞；_
 2.  _避免graylog集群异常停机时，日志的丢失；_
 
-_![](/download/attachments/1639587/log2.png?version=1&modificationDate=1536905453369&api=v2)  
+此处应有图片
 _
 
 _使用GELF Kafka input模块，需要在客户机提交日志时将日志转成GELF所需的格式，以下配置为将syslog日志转成输出到kafka，graylog使用gelf kafka input进行处理的例子：  
@@ -198,135 +196,74 @@ _
 
 **示例**
 
-[?](#)
-
-`define ROOT /usr/bin`
-
-`<``Extension` `gelf>`
-
-`Module xm_gelf`
-
-`</``Extension``>`
-
-`<``Extension` `syslog>`
-
-`Module xm_syslog`
-
-`</``Extension``>`
-
-`<``Extension` `json>`
-
-`Module  xm_json`
-
-`</``Extension``>`
-
-`<``Processor` `process_buffer_plaintext>`
-
-`Module pm_buffer`
-
-`MaxSize 16384`
-
-`Type Mem`
-
-`</``Processor``>`
-
-`User root`
-
-`Group root`
-
-`Moduledir /opt/nxlog/libexec/nxlog/modules`
-
-`#Moduledir /usr/libexec/nxlog/modules`
-
-`CacheDir /var/spool/collector-sidecar/nxlog`
-
-`PidFile /var/run/graylog/collector-sidecar/nxlog.pid`
-
-`define LOGFILE /var/log/graylog/collector-sidecar/nxlog.log`
-
-`LogFile %LOGFILE%`
-
-`LogLevel INFO`
-
-`<``Extension` `logrotate>`
-
-`Module  xm_fileop`
-
-`<``Schedule``>`
-
-`When    @daily`
-
-`Exec    file_cycle('%LOGFILE%', 7);`
-
-`</``Schedule``>`
-
-`</``Extension``>`
-
-`<``Input` `input_plaintext>`
-
-`Module im_tcp`
-
-`Host 127.0.0.1`
-
-`Port 1514`
-
-`Exec parse_syslog();`
-
-`Exec $foo = $Message; delete($Message); rename_field("foo","message");`
-
-`Exec $foo = lc($SyslogSeverity); delete($SyslogSeverity); rename_field("foo","syslog_severity");`
-
-`Exec $foo = $SyslogSeverityValue; delete($SyslogSeverityValue); rename_field("foo","syslog_severity_code");`
-
-`Exec $foo = lc($Severity); delete($Severity); rename_field("foo","severity_label");`
-
-`Exec $foo = $SeverityValue; delete($SeverityValue); rename_field("foo","severity");`
-
-`Exec $foo = lc($SyslogFacility); delete($SyslogFacility); rename_field("foo","syslog_facility");`
-
-`Exec $foo = $SyslogFacilityValue; delete($SyslogFacilityValue); rename_field("foo","syslog_facility_code");`
-
-`Exec $foo = $SourceName; delete($SourceName); rename_field("foo","sysloghost");`
-
-`Exec $foo = $ProcessID; delete($ProcessID); rename_field("foo","pid");`
-
-`Exec delete($EventReceivedTime);`
-
-`Exec $host = "repository-01";`
-
-`Exec to_json();`
-
-`</``Input``>`
-
-`<``Output` `output_kafka_plaintext>`
-
-`Module om_kafka`
-
-`BrokerList 192.168.2.67:9092`
-
-`Topic plaintext`
-
-`Exec $gl2_source_collector = 'b97bae40-4ac5-40b0-8048-64050831ed8a';`
-
-`Exec $collector_node_id = 'repository-01';`
-
-`Exec $message = "abcd";`
-
-`Exec $Hostname = hostname_fqdn();`
-
-`Exec $x_log_format = "plaintext";`
-
-`Exec $x_log_type = "system";`
-
-`Exec $x_platform = "linux";`
-
-`</``Output``>`
-
-`<``Route` `route_plaintext_log>`
-
-`Path input_plaintext => process_buffer_plaintext => output_kafka_plaintext`
-
-`</``Route``>`
+```
+define ROOT /usr/bin
+<Extension gelf>
+  Module xm_gelf
+</Extension>
+<Extension syslog>
+  Module xm_syslog
+</Extension>
+<Extension json>
+    Module  xm_json
+</Extension>
+<Processor process_buffer_plaintext>
+  Module pm_buffer
+  MaxSize 16384
+  Type Mem
+</Processor>
+ 
+User root
+Group root
+ 
+Moduledir /opt/nxlog/libexec/nxlog/modules
+#Moduledir /usr/libexec/nxlog/modules
+CacheDir /var/spool/collector-sidecar/nxlog
+PidFile /var/run/graylog/collector-sidecar/nxlog.pid
+define LOGFILE /var/log/graylog/collector-sidecar/nxlog.log
+LogFile %LOGFILE%
+LogLevel INFO
+<Extension logrotate>
+    Module  xm_fileop
+    <Schedule>
+        When    @daily
+        Exec    file_cycle('%LOGFILE%', 7);
+     </Schedule>
+</Extension>
+<Input input_plaintext>
+        Module im_tcp
+        Host 127.0.0.1
+        Port 1514
+        Exec parse_syslog();
+        Exec $foo = $Message; delete($Message); rename_field("foo","message");
+        Exec $foo = lc($SyslogSeverity); delete($SyslogSeverity); rename_field("foo","syslog_severity");
+        Exec $foo = $SyslogSeverityValue; delete($SyslogSeverityValue); rename_field("foo","syslog_severity_code");
+        Exec $foo = lc($Severity); delete($Severity); rename_field("foo","severity_label");
+        Exec $foo = $SeverityValue; delete($SeverityValue); rename_field("foo","severity");
+        Exec $foo = lc($SyslogFacility); delete($SyslogFacility); rename_field("foo","syslog_facility");
+        Exec $foo = $SyslogFacilityValue; delete($SyslogFacilityValue); rename_field("foo","syslog_facility_code");
+        Exec $foo = $SourceName; delete($SourceName); rename_field("foo","sysloghost");
+        Exec $foo = $ProcessID; delete($ProcessID); rename_field("foo","pid");
+        Exec delete($EventReceivedTime);
+        Exec $host = "repository-01";
+        Exec to_json();
+</Input>
+<Output output_kafka_plaintext>
+        Module om_kafka
+        BrokerList 192.168.2.67:9092
+        Topic plaintext
+        Exec $gl2_source_collector = 'b97bae40-4ac5-40b0-8048-64050831ed8a';
+        Exec $collector_node_id = 'repository-01';
+        Exec $message = "abcd";
+        Exec $Hostname = hostname_fqdn();
+        Exec $x_log_format = "plaintext";
+        Exec $x_log_type = "system";
+        Exec $x_platform = "linux";
+</Output>
+<Route route_plaintext_log>
+        Path input_plaintext => process_buffer_plaintext => output_kafka_plaintext
+</Route>
+```
 
 *   页面:
     
